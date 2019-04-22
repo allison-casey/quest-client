@@ -15,8 +15,11 @@ import Html.Styled.Events exposing (onBlur, onInput)
 import Quest.Enum.ComparisonOperator as Comparitor
 import Quest.Object
 import Quest.Object.Armor as Armor
+import Quest.Object.Weapon as Weapon
 import Quest.Query as Query
 import Quest.Scalar exposing (Id(..))
+import Quest.Union
+import Quest.Union.Item as Item
 import RemoteData exposing (RemoteData)
 
 
@@ -25,19 +28,12 @@ import RemoteData exposing (RemoteData)
 
 
 type alias Model =
-    { armors : List Armor }
-
-
-
--- RemoteData (Graphql.Http.Error Response) Response
--- init : () -> ( Model, Cmd Msg )
--- init _ =
---     ( RemoteData.Loading, makeRequest )
+    { items : List Item }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { armors = [] }, Cmd.none )
+    ( { items = [] }, Cmd.none )
 
 
 
@@ -50,7 +46,7 @@ type Msg
     | NoOp
 
 
-type alias Armor =
+type alias ArmorSpec =
     { name : String
     , dt : Int
     , value : Int
@@ -58,31 +54,64 @@ type alias Armor =
     }
 
 
+type alias WeaponSpec =
+    { name : String
+    , acc : Int
+    , str : Int
+    , mag : Int
+    , ammo : String
+    , value : Int
+    , weight : Int
+    }
+
+
+type Item
+    = WeaponDetails WeaponSpec
+    | ArmorDetails ArmorSpec
+
+
 type alias Response =
-    List Armor
+    List Item
 
 
-query : String -> SelectionSet (List Armor) RootQuery
+query : String -> SelectionSet (List Item) RootQuery
 query name =
-    Query.findArmors
+    Query.findItems
         (\optionals ->
             { optionals
                 | where_ =
                     Present
                         { name = Present name
-                        , dt = Absent
-                        , value = Absent
-                        , weight = Absent
                         , limit = Absent
                         }
             }
         )
-        armorSelection
+        itemSelection
 
 
-armorSelection : SelectionSet Armor Quest.Object.Armor
+itemSelection : SelectionSet Item Quest.Union.Item
+itemSelection =
+    Item.fragments
+        { onArmor = SelectionSet.map ArmorDetails armorSelection
+        , onWeapon = SelectionSet.map WeaponDetails weaponSelection
+        }
+
+
+weaponSelection : SelectionSet WeaponSpec Quest.Object.Weapon
+weaponSelection =
+    SelectionSet.map7 WeaponSpec
+        Weapon.name
+        Weapon.acc
+        Weapon.str
+        Weapon.mag
+        Weapon.ammo
+        Weapon.value
+        Weapon.weight
+
+
+armorSelection : SelectionSet ArmorSpec Quest.Object.Armor
 armorSelection =
-    SelectionSet.map4 Armor
+    SelectionSet.map4 ArmorSpec
         Armor.name
         Armor.dt
         Armor.value
@@ -96,7 +125,7 @@ makeRequest searchString =
         |> Graphql.Http.send (RemoteData.fromResult >> GotResponse)
 
 
-buildQuery : String -> SelectionSet (List Armor) RootQuery
+buildQuery : String -> SelectionSet (List Item) RootQuery
 buildQuery searchString =
     query searchString
 
@@ -106,8 +135,8 @@ update msg model =
     case msg of
         GotResponse response ->
             case response of
-                RemoteData.Success armors ->
-                    ( { model | armors = armors }, Cmd.none )
+                RemoteData.Success items ->
+                    ( { model | items = items }, Cmd.none )
 
                 RemoteData.Loading ->
                     ( model, Cmd.none )
@@ -133,7 +162,38 @@ update msg model =
 ---- VIEW ----
 
 
-viewArmor : Armor -> Html Msg
+viewItem : Item -> Html Msg
+viewItem item =
+    case item of
+        WeaponDetails weapon ->
+            viewWeapon weapon
+
+        ArmorDetails armor ->
+            viewArmor armor
+
+
+viewWeapon : WeaponSpec -> Html Msg
+viewWeapon weapon =
+    li []
+        [ text
+            (weapon.name
+                ++ " acc: "
+                ++ String.fromInt weapon.acc
+                ++ " str: "
+                ++ String.fromInt weapon.str
+                ++ " mag: "
+                ++ String.fromInt weapon.mag
+                ++ " ammo: "
+                ++ weapon.ammo
+                ++ " value: "
+                ++ String.fromInt weapon.value
+                ++ " weight: "
+                ++ String.fromInt weapon.weight
+            )
+        ]
+
+
+viewArmor : ArmorSpec -> Html Msg
 viewArmor armor =
     li []
         [ text
@@ -169,7 +229,7 @@ view model =
             ]
             [ text "A Button" ]
         , ul []
-            (List.map viewArmor model.armors)
+            (List.map viewItem model.items)
         ]
 
 
