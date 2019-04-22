@@ -2,7 +2,7 @@
 -- https://github.com/dillonkearns/elm-graphql
 
 
-module Quest.InputObject exposing (ArmorAttributes, ArmorAttributesRequiredFields, ArmorWhere, ArmorWhereOptionalFields, IntFilterType, IntFilterTypeRequiredFields, WeaponAttributes, WeaponAttributesRequiredFields, WeaponWhere, WeaponWhereOptionalFields, buildArmorAttributes, buildArmorWhere, buildIntFilterType, buildWeaponAttributes, buildWeaponWhere, encodeArmorAttributes, encodeArmorWhere, encodeIntFilterType, encodeWeaponAttributes, encodeWeaponWhere)
+module Quest.InputObject exposing (ArmorAttributes, ArmorAttributesRequiredFields, ArmorWhere, ArmorWhereOptionalFields, IntFilterType, IntFilterTypeRequiredFields, ItemWhere, ItemWhereOptionalFields, WeaponAttributes, WeaponAttributesRequiredFields, WeaponWhere, WeaponWhereOptionalFields, buildArmorAttributes, buildArmorWhere, buildIntFilterType, buildItemWhere, buildWeaponAttributes, buildWeaponWhere, encodeArmorAttributes, encodeArmorWhere, encodeIntFilterType, encodeItemWhere, encodeWeaponAttributes, encodeWeaponWhere)
 
 import Graphql.Internal.Builder.Argument as Argument exposing (Argument)
 import Graphql.Internal.Builder.Object as Object
@@ -117,6 +117,38 @@ encodeIntFilterType : IntFilterType -> Value
 encodeIntFilterType input =
     Encode.maybeObject
         [ ( "comparitor", Encode.enum Quest.Enum.ComparisonOperator.toString input.comparitor |> Just ), ( "input", Encode.int input.input |> Just ) ]
+
+
+buildItemWhere : (ItemWhereOptionalFields -> ItemWhereOptionalFields) -> ItemWhere
+buildItemWhere fillOptionals =
+    let
+        optionals =
+            fillOptionals
+                { name = Absent, limit = Absent }
+    in
+    { name = optionals.name, limit = optionals.limit }
+
+
+type alias ItemWhereOptionalFields =
+    { name : OptionalArgument String
+    , limit : OptionalArgument Int
+    }
+
+
+{-| Type for the ItemWhere input object.
+-}
+type alias ItemWhere =
+    { name : OptionalArgument String
+    , limit : OptionalArgument Int
+    }
+
+
+{-| Encode a ItemWhere into a value that can be used as an argument.
+-}
+encodeItemWhere : ItemWhere -> Value
+encodeItemWhere input =
+    Encode.maybeObject
+        [ ( "name", Encode.string |> Encode.optional input.name ), ( "limit", Encode.int |> Encode.optional input.limit ) ]
 
 
 buildWeaponAttributes : WeaponAttributesRequiredFields -> WeaponAttributes

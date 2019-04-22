@@ -2,7 +2,7 @@
 -- https://github.com/dillonkearns/elm-graphql
 
 
-module Quest.Query exposing (ArmorRequiredArguments, FindArmorsOptionalArguments, FindWeaponsOptionalArguments, WeaponRequiredArguments, armor, armors, findArmors, findWeapons, items, weapon, weapons)
+module Quest.Query exposing (ArmorRequiredArguments, FindArmorsOptionalArguments, FindItemsOptionalArguments, FindWeaponsOptionalArguments, WeaponRequiredArguments, armor, armors, findArmors, findItems, findWeapons, items, weapon, weapons)
 
 import Graphql.Internal.Builder.Argument as Argument exposing (Argument)
 import Graphql.Internal.Builder.Object as Object
@@ -20,9 +20,31 @@ import Quest.Union
 
 
 {-| -}
-items : SelectionSet decodesTo Quest.Union.Item -> SelectionSet (Maybe (List (Maybe decodesTo))) RootQuery
+items : SelectionSet decodesTo Quest.Union.Item -> SelectionSet (List decodesTo) RootQuery
 items object_ =
-    Object.selectionForCompositeField "items" [] object_ (identity >> Decode.nullable >> Decode.list >> Decode.nullable)
+    Object.selectionForCompositeField "items" [] object_ (identity >> Decode.list)
+
+
+type alias FindItemsOptionalArguments =
+    { where_ : OptionalArgument Quest.InputObject.ItemWhere }
+
+
+{-|
+
+  - where\_ -
+
+-}
+findItems : (FindItemsOptionalArguments -> FindItemsOptionalArguments) -> SelectionSet decodesTo Quest.Union.Item -> SelectionSet (List decodesTo) RootQuery
+findItems fillInOptionals object_ =
+    let
+        filledInOptionals =
+            fillInOptionals { where_ = Absent }
+
+        optionalArgs =
+            [ Argument.optional "where" filledInOptionals.where_ Quest.InputObject.encodeItemWhere ]
+                |> List.filterMap identity
+    in
+    Object.selectionForCompositeField "findItems" optionalArgs object_ (identity >> Decode.list)
 
 
 type alias ArmorRequiredArguments =
