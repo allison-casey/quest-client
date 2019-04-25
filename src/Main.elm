@@ -11,7 +11,7 @@ import Graphql.OptionalArgument exposing (OptionalArgument(..))
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (css, src)
+import Html.Styled.Attributes exposing (class, css, placeholder, src)
 import Html.Styled.Events exposing (onBlur, onInput)
 import ParseWhere exposing (..)
 import Quest.Enum.ComparisonOperator as Comparitor
@@ -34,9 +34,7 @@ import Task
 type alias Model =
     { value : String
     , debounce : Debounce String
-
-    -- , searchString : String
-    , items : List Item
+    , items : { armors : List ArmorSpec, weapons : List WeaponSpec }
     }
 
 
@@ -44,9 +42,7 @@ init : ( Model, Cmd Msg )
 init =
     ( { value = ""
       , debounce = Debounce.init
-
-      -- , searchString = ""
-      , items = []
+      , items = { armors = [], weapons = [] }
       }
     , Cmd.none
     )
@@ -69,17 +65,20 @@ type alias ArmorSpec =
     , dt : Int
     , value : Int
     , weight : Int
+    , traits : List String
     }
 
 
 type alias WeaponSpec =
     { name : String
+    , dmg : List String
     , acc : Int
     , str : Int
     , mag : Int
     , ammo : String
     , value : Int
     , weight : Int
+    , traits : List String
     }
 
 
@@ -137,23 +136,26 @@ itemSelection =
 
 weaponSelection : SelectionSet WeaponSpec Quest.Object.Weapon
 weaponSelection =
-    SelectionSet.map7 WeaponSpec
-        Weapon.name
-        Weapon.acc
-        Weapon.str
-        Weapon.mag
-        Weapon.ammo
-        Weapon.value
-        Weapon.weight
+    SelectionSet.succeed WeaponSpec
+        |> with Weapon.name
+        |> with Weapon.dmg
+        |> with Weapon.acc
+        |> with Weapon.str
+        |> with Weapon.mag
+        |> with Weapon.ammo
+        |> with Weapon.value
+        |> with Weapon.weight
+        |> with Weapon.traits
 
 
 armorSelection : SelectionSet ArmorSpec Quest.Object.Armor
 armorSelection =
-    SelectionSet.map4 ArmorSpec
+    SelectionSet.map5 ArmorSpec
         Armor.name
         Armor.dt
         Armor.value
         Armor.weight
+        Armor.traits
 
 
 makeRequest : String -> Cmd Msg
@@ -177,18 +179,26 @@ debounceConfig =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    -- let
-    --     _ =
-    --         Debug.log "msg" msg
-    --
-    --     _ =
-    --         Debug.log "model" model
-    -- in
     case msg of
         GotResponse response ->
             case response of
                 RemoteData.Success items ->
-                    ( { model | items = items }, Cmd.none )
+                    let
+                        defaultValue =
+                            { armors = [], weapons = [] }
+
+                        combiner item acc =
+                            case item of
+                                ArmorDetails armor ->
+                                    { acc | armors = armor :: acc.armors }
+
+                                WeaponDetails weapon ->
+                                    { acc | weapons = weapon :: acc.weapons }
+
+                        folded =
+                            List.foldl combiner defaultValue items
+                    in
+                    ( { model | items = folded }, Cmd.none )
 
                 RemoteData.Loading ->
                     ( model, Cmd.none )
@@ -252,6 +262,8 @@ viewWeapon weapon =
     li []
         [ text
             (weapon.name
+                ++ " dmg: "
+                ++ String.join " " weapon.dmg
                 ++ " acc: "
                 ++ String.fromInt weapon.acc
                 ++ " str: "
@@ -285,6 +297,10 @@ viewArmor armor =
 
 view : Model -> Html Msg
 view model =
+    let
+        _ =
+            Debug.log "items" model.items
+    in
     div
         [ css
             [ maxWidth (px 600)
@@ -292,19 +308,8 @@ view model =
             ]
         ]
         [ h1 [] [ text "Quest" ]
-        , input
-            [ css
-                [ margin (px 0)
-                , padding4 (px 16) (px 16) (px 16) (px 60)
-                , outline none
-                , border3 (px 1) solid (hex "000000")
-                , width (pct 100)
-                ]
-            , onInput UpdateSearch
-            ]
-            [ text "A Button" ]
-        , ul []
-            (List.map viewItem model.items)
+        , input [ class "input", placeholder "Search...", onInput UpdateSearch ] []
+        , ul [] []
         ]
 
 
