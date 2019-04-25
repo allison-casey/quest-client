@@ -43,17 +43,6 @@ nameParser =
     map (\a -> ( "name", Name a )) chompUntilColon
 
 
-
--- filterToString : Filter -> Field
--- filterToString filter =
---     case filter of
---         Name _ ->
---             "name"
---
---         Limit _ ->
---             "limit"
-
-
 createIntFilter : (Int -> Filter) -> Field -> Parser ( Field, Filter )
 createIntFilter constructor field =
     map (\a -> ( field, constructor a ))
@@ -144,155 +133,58 @@ whereBlockParserHelp filterList filter =
         ]
 
 
-
----- Old Parser ----
--- type alias TestWhere =
---     { name : Maybe String, limit : Maybe Int }
---
---
--- defaultTestWhere : TestWhere
--- defaultTestWhere =
---     { name = Nothing, limit = Nothing }
---
---
--- type alias Where =
---     { name : Maybe String
---     , limit : ( String, Maybe Int )
---     , test : ( String, Maybe Int )
---     }
--- type NewWhere
---     = Name (Maybe String)
---     | Limit (Maybe Int)
--- defaultWhere : Where
--- defaultWhere =
---     { name = Nothing, limit = ( "limit", Nothing ), test = ( "test", Nothing ) }
--- nameParser : Parser (Maybe String)
--- nameParser =
---     let
---         chompUntilColon =
---             Parser.getChompedString <|
---                 succeed ()
---                     |. chompUntilEndOr ":"
---     in
---     oneOf
---         [ succeed Just
---             |= chompUntilColon
---         , succeed Nothing
---         ]
---
---
--- limitParser : String -> Parser ( String, Maybe Int )
--- limitParser field =
---     oneOf
---         [ succeed Just
---             |. symbol ":"
---             |. keyword field
---             |. symbol "="
---             |= Parser.int
---             |. symbol ":"
---         , succeed Nothing
---         ]
---         |> andThen
---             (\code ->
---                 -- let
---                 --     _ =
---                 --         Debug.log "code" code
---                 -- in
---                 succeed
---                     ( field
---                     , code
---                     )
---             )
---
---
--- whereParser : Parser Where
--- whereParser =
---     succeed Where
---         |. spaces
---         |= nameParser
---         |= oneOf [ limitParser "test", limitParser "limit" ]
---         |= limitParser "test"
-
-
-nameDecoder : Dict.Dict String Filter -> Maybe String
-nameDecoder filterDict =
+filterDecoder : Field -> (Filter -> Maybe a) -> FilterDict -> Maybe a
+filterDecoder field callback filterDict =
     let
         filter =
-            Dict.get "name" filterDict
+            Dict.get field filterDict
     in
-    Maybe.andThen
-        (\a ->
+    Maybe.andThen callback filter
+
+
+nameDecoder : FilterDict -> Maybe String
+nameDecoder =
+    let
+        callback a =
             case a of
                 Name name ->
                     Just name
 
                 _ ->
                     Nothing
-        )
-        filter
-
-
-limitDecoder : Dict.Dict String Filter -> Maybe Int
-limitDecoder filterDict =
-    let
-        filter =
-            Dict.get "limit" filterDict
     in
-    Maybe.andThen
-        (\a ->
+    filterDecoder "name" callback
+
+
+limitDecoder : FilterDict -> Maybe Int
+limitDecoder =
+    let
+        callback a =
             case a of
-                Limit name ->
-                    Just name
+                Limit input ->
+                    Just input
 
                 _ ->
                     Nothing
-        )
-        filter
+    in
+    filterDecoder "limit" callback
 
 
 comparitorDecoder : Field -> FilterDict -> Maybe IntFilterType
-comparitorDecoder field filterDict =
+comparitorDecoder field =
     let
-        filter =
-            Dict.get field filterDict
-    in
-    Maybe.andThen
-        (\a ->
+        callback a =
             case a of
                 Comparison comparitor input ->
                     Just <| IntFilterType comparitor input
 
                 _ ->
                     Nothing
-        )
-        filter
-
-
-
--- parse : String -> Result (List Parser.DeadEnd) (Dict.Dict String Filter)
--- parse : String -> FilterDict
+    in
+    filterDecoder field callback
 
 
 parse str =
-    -- let
-    --     whereblock =
-    --         Parser.run whereBlockParser str
-    --
-    --     filters =
-    --         case whereblock of
-    --             Ok lst ->
-    --                 Dict.fromList lst
-    --
-    --             Err err ->
-    --                 Dict.fromList []
-    --
-    --     _ =
-    --         Debug.log "name" filters
-    --
-    --     _ =
-    --         Debug.log "limit" (limitDecoder filters)
-    -- in
-    -- Parser.run whereBlockParser str
     let
         parsedWhere =
             Parser.run whereBlockParser str
