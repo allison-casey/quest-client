@@ -4,6 +4,7 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
 import Css exposing (..)
+import Debounce exposing (Debounce)
 import Graphql.Http
 import Graphql.Operation exposing (RootQuery)
 import Graphql.OptionalArgument exposing (OptionalArgument(..))
@@ -23,7 +24,7 @@ import Quest.Scalar exposing (Id(..))
 import Quest.Union
 import Quest.Union.Item as Item
 import RemoteData exposing (RemoteData)
-import Tuple exposing (second)
+import Task
 
 
 
@@ -31,12 +32,24 @@ import Tuple exposing (second)
 
 
 type alias Model =
-    { items : List Item }
+    { value : String
+    , debounce : Debounce String
+
+    -- , searchString : String
+    , items : List Item
+    }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { items = [] }, Cmd.none )
+    ( { value = ""
+      , debounce = Debounce.init
+
+      -- , searchString = ""
+      , items = []
+      }
+    , Cmd.none
+    )
 
 
 
@@ -46,6 +59,8 @@ init =
 type Msg
     = GotResponse (RemoteData (Graphql.Http.Error Response) Response)
     | UpdateSearch String
+    | DebounceMsg Debounce.Msg
+    | Saved String
     | NoOp
 
 
@@ -150,28 +165,25 @@ makeRequest searchString =
 
 buildQuery : String -> SelectionSet (List Item) RootQuery
 buildQuery searchString =
-    -- let
-    --     whereBlock =
-    --         case parse searchString of
-    --             Ok value ->
-    --                 let
-    --                     _ =
-    --                         Debug.log "where" value
-    --                 in
-    --                 value
-    --
-    --             Err error ->
-    --                 let
-    --                     _ =
-    --                         Debug.log "error" error
-    --                 in
-    --                 defaultWhere
-    -- in
     query (parse searchString)
+
+
+debounceConfig : Debounce.Config Msg
+debounceConfig =
+    { strategy = Debounce.later 1000
+    , transform = DebounceMsg
+    }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    -- let
+    --     _ =
+    --         Debug.log "msg" msg
+    --
+    --     _ =
+    --         Debug.log "model" model
+    -- in
     case msg of
         GotResponse response ->
             case response of
@@ -192,10 +204,33 @@ update msg model =
                     ( model, Cmd.none )
 
         UpdateSearch search ->
-            ( model, makeRequest search )
+            let
+                ( debounce, cmd ) =
+                    Debounce.push debounceConfig search model.debounce
+            in
+            ( { model | value = search, debounce = debounce }, cmd )
+
+        DebounceMsg msg_ ->
+            let
+                ( debounce, cmd ) =
+                    Debounce.update
+                        debounceConfig
+                        (Debounce.takeLast save)
+                        msg_
+                        model.debounce
+            in
+            ( { model | debounce = debounce }, cmd )
+
+        Saved s ->
+            ( model, makeRequest s )
 
         NoOp ->
             ( model, Cmd.none )
+
+
+save : String -> Cmd Msg
+save s =
+    Task.perform Saved (Task.succeed s)
 
 
 
