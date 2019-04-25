@@ -12,7 +12,7 @@ import Html
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (css, src)
 import Html.Styled.Events exposing (onBlur, onInput)
-import Parser exposing (..)
+import ParseWhere exposing (..)
 import Quest.Enum.ComparisonOperator as Comparitor
 import Quest.Object
 import Quest.Object.Armor as Armor
@@ -22,63 +22,7 @@ import Quest.Scalar exposing (Id(..))
 import Quest.Union
 import Quest.Union.Item as Item
 import RemoteData exposing (RemoteData)
-import Set
-
-
-
----- PARSER ----
-
-
-type alias Where =
-    { name : Maybe String
-    , limit : Maybe Int
-    }
-
-
-defaultWhere : Where
-defaultWhere =
-    { name = Nothing, limit = Nothing }
-
-
-nameParser : Parser (Maybe String)
-nameParser =
-    let
-        chompUntilColon =
-            Parser.getChompedString <|
-                succeed ()
-                    |. chompUntilEndOr ":"
-    in
-    oneOf
-        [ succeed Just
-            |= chompUntilColon
-        , succeed Nothing
-        ]
-
-
-limitParser : Parser (Maybe Int)
-limitParser =
-    oneOf
-        [ succeed Just
-            |. symbol ":"
-            |. keyword "limit"
-            |. symbol "="
-            |= Parser.int
-            |. symbol ":"
-        , succeed Nothing
-        ]
-
-
-whereParser : Parser Where
-whereParser =
-    succeed Where
-        |. spaces
-        |= nameParser
-        |= limitParser
-
-
-parse : String -> Result (List Parser.DeadEnd) Where
-parse =
-    Parser.run whereParser
+import Tuple exposing (second)
 
 
 
@@ -132,10 +76,6 @@ type alias Response =
     List Item
 
 
-
--- presentIfJust : Maybe a -> Present a
-
-
 presentIfJust : Maybe a -> Graphql.OptionalArgument.OptionalArgument a
 presentIfJust m =
     case m of
@@ -146,15 +86,19 @@ presentIfJust m =
             Present a
 
 
-query : Where -> SelectionSet (List Item) RootQuery
-query whereBlock =
+query : ParseWhere.FilterDict -> SelectionSet (List Item) RootQuery
+query filterDict =
+    let
+        _ =
+            Debug.log "filterdict" filterDict
+    in
     Query.findItems
         (\optionals ->
             { optionals
                 | where_ =
                     Present
-                        { name = presentIfJust whereBlock.name
-                        , limit = presentIfJust whereBlock.limit
+                        { name = presentIfJust <| nameDecoder filterDict
+                        , limit = presentIfJust <| limitDecoder filterDict
                         }
             }
         )
@@ -199,24 +143,24 @@ makeRequest searchString =
 
 buildQuery : String -> SelectionSet (List Item) RootQuery
 buildQuery searchString =
-    let
-        whereBlock =
-            case parse searchString of
-                Ok value ->
-                    let
-                        _ =
-                            Debug.log "where" value
-                    in
-                    value
-
-                Err error ->
-                    let
-                        _ =
-                            Debug.log "error" error
-                    in
-                    defaultWhere
-    in
-    query whereBlock
+    -- let
+    --     whereBlock =
+    --         case parse searchString of
+    --             Ok value ->
+    --                 let
+    --                     _ =
+    --                         Debug.log "where" value
+    --                 in
+    --                 value
+    --
+    --             Err error ->
+    --                 let
+    --                     _ =
+    --                         Debug.log "error" error
+    --                 in
+    --                 defaultWhere
+    -- in
+    query (parse searchString)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
