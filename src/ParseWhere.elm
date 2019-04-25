@@ -2,8 +2,8 @@ module ParseWhere exposing
     ( Field
     , Filter(..)
     , FilterDict
+    , comparitorDecoder
     , createIntFilter
-    , filterToString
     , limitDecoder
     , nameDecoder
     , nameParser
@@ -14,12 +14,14 @@ module ParseWhere exposing
 
 import Dict
 import Parser exposing (..)
+import Quest.Enum.ComparisonOperator as CO
+import Quest.InputObject exposing (IntFilterType)
 
 
 type Filter
     = Limit Int
     | Name String
-    | Test Int
+    | Comparison CO.ComparisonOperator Int
 
 
 type alias FilterDict =
@@ -41,17 +43,15 @@ nameParser =
     map (\a -> ( "name", Name a )) chompUntilColon
 
 
-filterToString : Filter -> Field
-filterToString filter =
-    case filter of
-        Name _ ->
-            "name"
 
-        Limit _ ->
-            "limit"
-
-        Test _ ->
-            "test"
+-- filterToString : Filter -> Field
+-- filterToString filter =
+--     case filter of
+--         Name _ ->
+--             "name"
+--
+--         Limit _ ->
+--             "limit"
 
 
 createIntFilter : (Int -> Filter) -> Field -> Parser ( Field, Filter )
@@ -65,6 +65,49 @@ createIntFilter constructor field =
             |. symbol ":"
             |. spaces
         )
+
+
+encodeComparitor : Field -> ( String, Int ) -> Parser ( Field, Filter )
+encodeComparitor field ( str, input ) =
+    case str of
+        "=" ->
+            succeed ( field, Comparison CO.Eq input )
+
+        "<" ->
+            succeed ( field, Comparison CO.Lt input )
+
+        ">" ->
+            succeed ( field, Comparison CO.Gt input )
+
+        ">=" ->
+            succeed ( field, Comparison CO.Ge input )
+
+        "<=" ->
+            succeed ( field, Comparison CO.Ge input )
+
+        "!=" ->
+            succeed ( field, Comparison CO.Ne input )
+
+        _ ->
+            problem "operator isnt = or <"
+
+
+createComparisonFilter : Field -> Parser ( Field, Filter )
+createComparisonFilter field =
+    let
+        getChompedComparitor =
+            Parser.getChompedString <|
+                succeed ()
+                    |. chompWhile (\c -> List.member c [ '=', '<', '>', '!' ])
+    in
+    succeed Tuple.pair
+        |. symbol ":"
+        |. symbol field
+        |= getChompedComparitor
+        |= Parser.int
+        |. symbol ":"
+        |. spaces
+        |> andThen (encodeComparitor field)
 
 
 whereBlockParser : Parser (List ( Field, Filter ))
@@ -82,16 +125,13 @@ whereBlockParserHelp filterList filter =
         limitparser =
             createIntFilter Limit "limit"
 
-        testparser =
-            createIntFilter Test "test"
-
         recurse =
             \newFilter -> whereBlockParserHelp (filter :: filterList) newFilter
     in
     oneOf
         [ backtrackable limitparser
             |> andThen recurse
-        , testparser
+        , createComparisonFilter "acc"
             |> andThen recurse
         , lazy (\_ -> succeed (filter :: filterList))
         ]
@@ -203,11 +243,29 @@ limitDecoder filterDict =
         filter
 
 
+comparitorDecoder : Field -> FilterDict -> Maybe IntFilterType
+comparitorDecoder field filterDict =
+    let
+        filter =
+            Dict.get field filterDict
+    in
+    Maybe.andThen
+        (\a ->
+            case a of
+                Comparison comparitor input ->
+                    Just <| IntFilterType comparitor input
+
+                _ ->
+                    Nothing
+        )
+        filter
+
+
 
 -- parse : String -> Result (List Parser.DeadEnd) (Dict.Dict String Filter)
+-- parse : String -> FilterDict
 
 
-parse : String -> FilterDict
 parse str =
     -- let
     --     whereblock =

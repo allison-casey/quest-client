@@ -14,6 +14,7 @@ import Html.Styled.Attributes exposing (css, src)
 import Html.Styled.Events exposing (onBlur, onInput)
 import ParseWhere exposing (..)
 import Quest.Enum.ComparisonOperator as Comparitor
+import Quest.InputObject exposing (IntFilterType)
 import Quest.Object
 import Quest.Object.Armor as Armor
 import Quest.Object.Weapon as Weapon
@@ -99,6 +100,7 @@ query filterDict =
                     Present
                         { name = presentIfJust <| nameDecoder filterDict
                         , limit = presentIfJust <| limitDecoder filterDict
+                        , acc = presentIfJust <| comparitorDecoder "acc" filterDict
                         }
             }
         )

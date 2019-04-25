@@ -124,14 +124,15 @@ buildItemWhere fillOptionals =
     let
         optionals =
             fillOptionals
-                { name = Absent, limit = Absent }
+                { name = Absent, limit = Absent, acc = Absent }
     in
-    { name = optionals.name, limit = optionals.limit }
+    { name = optionals.name, limit = optionals.limit, acc = optionals.acc }
 
 
 type alias ItemWhereOptionalFields =
     { name : OptionalArgument String
     , limit : OptionalArgument Int
+    , acc : OptionalArgument IntFilterType
     }
 
 
@@ -140,6 +141,7 @@ type alias ItemWhereOptionalFields =
 type alias ItemWhere =
     { name : OptionalArgument String
     , limit : OptionalArgument Int
+    , acc : OptionalArgument IntFilterType
     }
 
 
@@ -148,7 +150,7 @@ type alias ItemWhere =
 encodeItemWhere : ItemWhere -> Value
 encodeItemWhere input =
     Encode.maybeObject
-        [ ( "name", Encode.string |> Encode.optional input.name ), ( "limit", Encode.int |> Encode.optional input.limit ) ]
+        [ ( "name", Encode.string |> Encode.optional input.name ), ( "limit", Encode.int |> Encode.optional input.limit ), ( "acc", encodeIntFilterType |> Encode.optional input.acc ) ]
 
 
 buildWeaponAttributes : WeaponAttributesRequiredFields -> WeaponAttributes
