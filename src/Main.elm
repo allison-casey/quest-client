@@ -101,6 +101,11 @@ query filterDict =
                         { name = presentIfJust <| nameDecoder filterDict
                         , limit = presentIfJust <| limitDecoder filterDict
                         , acc = presentIfJust <| comparitorDecoder "acc" filterDict
+                        , value = presentIfJust <| comparitorDecoder "value" filterDict
+                        , str = presentIfJust <| comparitorDecoder "str" filterDict
+                        , mag = presentIfJust <| comparitorDecoder "mag" filterDict
+                        , weight = presentIfJust <| comparitorDecoder "weight" filterDict
+                        , dt = presentIfJust <| comparitorDecoder "dt" filterDict
                         }
             }
         )

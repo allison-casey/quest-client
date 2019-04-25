@@ -124,15 +124,20 @@ buildItemWhere fillOptionals =
     let
         optionals =
             fillOptionals
-                { name = Absent, limit = Absent, acc = Absent }
+                { name = Absent, limit = Absent, value = Absent, acc = Absent, str = Absent, mag = Absent, weight = Absent, dt = Absent }
     in
-    { name = optionals.name, limit = optionals.limit, acc = optionals.acc }
+    { name = optionals.name, limit = optionals.limit, value = optionals.value, acc = optionals.acc, str = optionals.str, mag = optionals.mag, weight = optionals.weight, dt = optionals.dt }
 
 
 type alias ItemWhereOptionalFields =
     { name : OptionalArgument String
     , limit : OptionalArgument Int
+    , value : OptionalArgument IntFilterType
     , acc : OptionalArgument IntFilterType
+    , str : OptionalArgument IntFilterType
+    , mag : OptionalArgument IntFilterType
+    , weight : OptionalArgument IntFilterType
+    , dt : OptionalArgument IntFilterType
     }
 
 
@@ -141,7 +146,12 @@ type alias ItemWhereOptionalFields =
 type alias ItemWhere =
     { name : OptionalArgument String
     , limit : OptionalArgument Int
+    , value : OptionalArgument IntFilterType
     , acc : OptionalArgument IntFilterType
+    , str : OptionalArgument IntFilterType
+    , mag : OptionalArgument IntFilterType
+    , weight : OptionalArgument IntFilterType
+    , dt : OptionalArgument IntFilterType
     }
 
 
@@ -150,7 +160,7 @@ type alias ItemWhere =
 encodeItemWhere : ItemWhere -> Value
 encodeItemWhere input =
     Encode.maybeObject
-        [ ( "name", Encode.string |> Encode.optional input.name ), ( "limit", Encode.int |> Encode.optional input.limit ), ( "acc", encodeIntFilterType |> Encode.optional input.acc ) ]
+        [ ( "name", Encode.string |> Encode.optional input.name ), ( "limit", Encode.int |> Encode.optional input.limit ), ( "value", encodeIntFilterType |> Encode.optional input.value ), ( "acc", encodeIntFilterType |> Encode.optional input.acc ), ( "str", encodeIntFilterType |> Encode.optional input.str ), ( "mag", encodeIntFilterType |> Encode.optional input.mag ), ( "weight", encodeIntFilterType |> Encode.optional input.weight ), ( "dt", encodeIntFilterType |> Encode.optional input.dt ) ]
 
 
 buildWeaponAttributes : WeaponAttributesRequiredFields -> WeaponAttributes

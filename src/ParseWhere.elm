@@ -127,12 +127,19 @@ whereBlockParserHelp filterList filter =
 
         recurse =
             \newFilter -> whereBlockParserHelp (filter :: filterList) newFilter
+
+        comparisonParser field =
+            createComparisonFilter field |> andThen recurse
     in
     oneOf
         [ backtrackable limitparser
             |> andThen recurse
-        , createComparisonFilter "acc"
-            |> andThen recurse
+        , backtrackable <| comparisonParser "value"
+        , backtrackable <| comparisonParser "acc"
+        , backtrackable <| comparisonParser "str"
+        , backtrackable <| comparisonParser "mag"
+        , backtrackable <| comparisonParser "weight"
+        , backtrackable <| comparisonParser "dt"
         , lazy (\_ -> succeed (filter :: filterList))
         ]
 
