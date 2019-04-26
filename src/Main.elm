@@ -11,8 +11,8 @@ import Graphql.OptionalArgument exposing (OptionalArgument(..))
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (class, css, placeholder, src, title)
-import Html.Styled.Events exposing (onBlur, onInput)
+import Html.Styled.Attributes exposing (class, classList, css, placeholder, src, title)
+import Html.Styled.Events exposing (onBlur, onClick, onInput)
 import ParseWhere exposing (..)
 import Quest.Enum.ComparisonOperator as Comparitor
 import Quest.InputObject exposing (IntFilterType)
@@ -35,6 +35,7 @@ type alias Model =
     { value : String
     , debounce : Debounce String
     , items : { armors : List ArmorSpec, weapons : List WeaponSpec }
+    , selectedTab : Tabs
     }
 
 
@@ -43,6 +44,7 @@ init =
     ( { value = ""
       , debounce = Debounce.init
       , items = { armors = [], weapons = [] }
+      , selectedTab = WeaponTab
       }
     , Cmd.none
     )
@@ -57,7 +59,13 @@ type Msg
     | UpdateSearch String
     | DebounceMsg Debounce.Msg
     | Saved String
+    | ChangeTabs Tabs
     | NoOp
+
+
+type Tabs
+    = WeaponTab
+    | ArmorTab
 
 
 type alias ArmorSpec =
@@ -234,6 +242,9 @@ update msg model =
         Saved s ->
             ( model, makeRequest s )
 
+        ChangeTabs tab ->
+            ( { model | selectedTab = tab }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -322,10 +333,15 @@ viewArmorTable armorList =
 
 
 view : Model -> Html Msg
-view model =
+view { selectedTab, items } =
     let
-        _ =
-            Debug.log "items" model.items
+        itemTable =
+            case selectedTab of
+                WeaponTab ->
+                    viewWeaponTable items.weapons
+
+                ArmorTab ->
+                    viewArmorTable items.armors
     in
     div
         [ css
@@ -335,14 +351,19 @@ view model =
         ]
         [ h1 [] [ text "Quest" ]
         , input [ class "input", placeholder "Search...", onInput UpdateSearch ] []
-        , div [ class "tabs" ]
+        , div [ class "tabs is-centered" ]
             [ ul []
-                [ li [ class "is-active" ] [ a [] [ text "Weapons" ] ]
-                , li [] [ a [] [ text "Armors" ] ]
+                [ li [ classList [ ( "is-active", selectedTab == WeaponTab ) ] ]
+                    [ a [ onClick <| ChangeTabs WeaponTab ]
+                        [ text "Weapons" ]
+                    ]
+                , li [ classList [ ( "is-active", selectedTab == ArmorTab ) ] ]
+                    [ a [ onClick <| ChangeTabs ArmorTab ]
+                        [ text "Armors" ]
+                    ]
                 ]
             ]
-        , viewWeaponTable model.items.weapons
-        , viewArmorTable model.items.armors
+        , itemTable
         ]
 
 
