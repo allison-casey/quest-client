@@ -36,17 +36,23 @@ type alias Model =
     , debounce : Debounce String
     , items : { armors : List ArmorSpec, weapons : List WeaponSpec }
     , selectedTab : Tabs
+    , graphqlUrl : String
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+type alias Flags =
+    { graphqlUrl : String }
+
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     ( { value = ""
       , debounce = Debounce.init
       , items = { armors = [], weapons = [] }
       , selectedTab = WeaponTab
+      , graphqlUrl = flags.graphqlUrl
       }
-    , makeRequest ""
+    , Cmd.none
     )
 
 
@@ -162,10 +168,10 @@ armorSelection =
         Armor.traits
 
 
-makeRequest : String -> Cmd Msg
-makeRequest searchString =
+makeRequest : String -> String -> Cmd Msg
+makeRequest urlHost searchString =
     buildQuery searchString
-        |> Graphql.Http.queryRequest "http://localhost:4000/quest"
+        |> Graphql.Http.queryRequest ("http://" ++ urlHost ++ ":4000/quest")
         |> Graphql.Http.send (RemoteData.fromResult >> GotResponse)
 
 
@@ -236,7 +242,7 @@ update msg model =
             ( { model | debounce = debounce }, cmd )
 
         Saved s ->
-            ( model, makeRequest s )
+            ( model, makeRequest model.graphqlUrl s )
 
         ChangeTabs tab ->
             ( { model | selectedTab = tab }, Cmd.none )
@@ -373,36 +379,14 @@ view { selectedTab, items } =
 
 
 
--- div
---     [ css
---         [ maxWidth (px 1000)
---         , margin auto
---         ]
---     ]
---     [ h1 [] [ text "Quest" ]
---     , input [ class "input", placeholder "Search...", onInput UpdateSearch ] []
---     , div [ class "tabs is-centered" ]
---         [ ul []
---             [ li [ classList [ ( "is-active", selectedTab == WeaponTab ) ] ]
---                 [ a [ onClick <| ChangeTabs WeaponTab ]
---                     [ text <| "Weapons " ++ (String.fromInt <| List.length items.weapons) ]
---                 ]
---             , li [ classList [ ( "is-active", selectedTab == ArmorTab ) ] ]
---                 [ a [ onClick <| ChangeTabs ArmorTab ]
---                     [ text <| "Armors " ++ (String.fromInt <| List.length items.armors) ]
---                 ]
---             ]
---         ]
---     , itemTable
---     ]
 ---- PROGRAM ----
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.element
         { view = view >> toUnstyled
-        , init = \_ -> init
+        , init = init
         , update = update
         , subscriptions = always Sub.none
         }
