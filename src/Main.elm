@@ -11,7 +11,7 @@ import Graphql.OptionalArgument exposing (OptionalArgument(..))
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (class, classList, css, placeholder, src, title)
+import Html.Styled.Attributes exposing (attribute, class, classList, css, placeholder, src, title)
 import Html.Styled.Events exposing (onBlur, onClick, onInput)
 import ParseWhere exposing (..)
 import Quest.Enum.ComparisonOperator as Comparitor
@@ -46,7 +46,7 @@ init =
       , items = { armors = [], weapons = [] }
       , selectedTab = WeaponTab
       }
-    , Cmd.none
+    , makeRequest ""
     )
 
 
@@ -111,10 +111,6 @@ presentIfJust m =
 
 query : ParseWhere.FilterDict -> SelectionSet (List Item) RootQuery
 query filterDict =
-    let
-        _ =
-            Debug.log "filterdict" filterDict
-    in
     Query.findItems
         (\optionals ->
             { optionals
@@ -215,10 +211,10 @@ update msg model =
                     ( model, Cmd.none )
 
                 RemoteData.Failure e ->
-                    let
-                        _ =
-                            Debug.log "error" e
-                    in
+                    -- let
+                    --     _ =
+                    --         Debug.log "error" e
+                    -- in
                     ( model, Cmd.none )
 
         UpdateSearch search ->
@@ -271,15 +267,15 @@ viewItem item =
 viewWeapon : WeaponSpec -> Html Msg
 viewWeapon { name, dmg, acc, str, mag, ammo, value, weight, traits } =
     tr []
-        [ td [] [ text name ]
-        , td [] [ text <| String.join " " dmg ]
-        , td [] [ text <| String.fromInt acc ]
-        , td [] [ text <| String.fromInt str ]
-        , td [] [ text <| String.fromInt mag ]
-        , td [] [ text ammo ]
-        , td [] [ text <| String.fromInt value ]
-        , td [] [ text <| String.fromInt weight ]
-        , td [] [ text <| String.join ", " traits ]
+        [ td [ attribute "data-title" "Name" ] [ text name ]
+        , td [ attribute "data-title" "Damage" ] [ text <| String.join " " dmg ]
+        , td [ attribute "data-title" "Accuracy" ] [ text <| String.fromInt acc ]
+        , td [ attribute "data-title" "Strength" ] [ text <| String.fromInt str ]
+        , td [ attribute "data-title" "Magazine" ] [ text <| String.fromInt mag ]
+        , td [ attribute "data-title" "Ammo" ] [ text ammo ]
+        , td [ attribute "data-title" "Value" ] [ text <| String.fromInt value ]
+        , td [ attribute "data-title" "Weight" ] [ text <| String.fromInt weight ]
+        , td [ attribute "data-title" "Traits" ] [ text <| String.join ", " traits ]
         ]
 
 
@@ -307,11 +303,11 @@ viewWeaponTable weaponList =
 viewArmor : ArmorSpec -> Html Msg
 viewArmor { name, dt, value, weight, traits } =
     tr []
-        [ td [] [ text name ]
-        , td [] [ text <| String.fromInt dt ]
-        , td [] [ text <| String.fromInt value ]
-        , td [] [ text <| String.fromInt weight ]
-        , td [] [ text <| String.join ", " traits ]
+        [ td [ attribute "data-title" "Name" ] [ text name ]
+        , td [ attribute "data-title" "DT" ] [ text <| String.fromInt dt ]
+        , td [ attribute "data-title" "Value" ] [ text <| String.fromInt value ]
+        , td [ attribute "data-title" "Weight" ] [ text <| String.fromInt weight ]
+        , td [ attribute "data-title" "Traits" ] [ text <| String.join ", " traits ]
         ]
 
 
@@ -343,31 +339,61 @@ view { selectedTab, items } =
                 ArmorTab ->
                     viewArmorTable items.armors
     in
-    div
-        [ css
-            [ maxWidth (px 1000)
+    nav
+        [ class "panel"
+        , css
+            [ maxWidth (px 1200)
             , margin auto
+            , Css.marginTop (px 10)
+            , Css.boxShadow4 (px 10) (px 10) (px 5) (Css.rgba 0 0 0 0.25)
             ]
         ]
-        [ h1 [] [ text "Quest" ]
-        , input [ class "input", placeholder "Search...", onInput UpdateSearch ] []
-        , div [ class "tabs is-centered" ]
-            [ ul []
-                [ li [ classList [ ( "is-active", selectedTab == WeaponTab ) ] ]
-                    [ a [ onClick <| ChangeTabs WeaponTab ]
-                        [ text "Weapons" ]
-                    ]
-                , li [ classList [ ( "is-active", selectedTab == ArmorTab ) ] ]
-                    [ a [ onClick <| ChangeTabs ArmorTab ]
-                        [ text "Armors" ]
-                    ]
+        [ p [ class "panel-heading" ] [ text "Quest Items" ]
+        , div [ class "panel-block" ]
+            [ p [ class "control" ]
+                [ input [ class "input", placeholder "search", onInput UpdateSearch ] []
                 ]
             ]
-        , itemTable
+        , p [ class "panel-tabs" ]
+            [ a
+                [ classList [ ( "is-active", selectedTab == WeaponTab ) ]
+                , onClick <| ChangeTabs WeaponTab
+                ]
+                [ text <| "Weapons " ++ (String.fromInt <| List.length items.weapons) ]
+            , a
+                [ classList [ ( "is-active", selectedTab == ArmorTab ) ]
+                , onClick <| ChangeTabs ArmorTab
+                ]
+                [ text <| "Armors " ++ (String.fromInt <| List.length items.armors) ]
+            ]
+        , a [ class "panel-block", css [ Css.padding (px 0) ] ]
+            [ itemTable ]
         ]
 
 
 
+-- div
+--     [ css
+--         [ maxWidth (px 1000)
+--         , margin auto
+--         ]
+--     ]
+--     [ h1 [] [ text "Quest" ]
+--     , input [ class "input", placeholder "Search...", onInput UpdateSearch ] []
+--     , div [ class "tabs is-centered" ]
+--         [ ul []
+--             [ li [ classList [ ( "is-active", selectedTab == WeaponTab ) ] ]
+--                 [ a [ onClick <| ChangeTabs WeaponTab ]
+--                     [ text <| "Weapons " ++ (String.fromInt <| List.length items.weapons) ]
+--                 ]
+--             , li [ classList [ ( "is-active", selectedTab == ArmorTab ) ] ]
+--                 [ a [ onClick <| ChangeTabs ArmorTab ]
+--                     [ text <| "Armors " ++ (String.fromInt <| List.length items.armors) ]
+--                 ]
+--             ]
+--         ]
+--     , itemTable
+--     ]
 ---- PROGRAM ----
 
 
