@@ -3,7 +3,7 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 -- import Html.Attributes exposing (src)
 
 import Browser
-import Css exposing (..)
+import Css exposing (auto, margin, maxWidth, px)
 import Debounce exposing (Debounce)
 import Graphql.Http
 import Graphql.Operation exposing (RootQuery)
@@ -11,7 +11,7 @@ import Graphql.OptionalArgument exposing (OptionalArgument(..))
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (class, css, placeholder, src)
+import Html.Styled.Attributes exposing (class, css, placeholder, src, title)
 import Html.Styled.Events exposing (onBlur, onInput)
 import ParseWhere exposing (..)
 import Quest.Enum.ComparisonOperator as Comparitor
@@ -258,40 +258,66 @@ viewItem item =
 
 
 viewWeapon : WeaponSpec -> Html Msg
-viewWeapon weapon =
-    li []
-        [ text
-            (weapon.name
-                ++ " dmg: "
-                ++ String.join " " weapon.dmg
-                ++ " acc: "
-                ++ String.fromInt weapon.acc
-                ++ " str: "
-                ++ String.fromInt weapon.str
-                ++ " mag: "
-                ++ String.fromInt weapon.mag
-                ++ " ammo: "
-                ++ weapon.ammo
-                ++ " value: "
-                ++ String.fromInt weapon.value
-                ++ " weight: "
-                ++ String.fromInt weapon.weight
-            )
+viewWeapon { name, dmg, acc, str, mag, ammo, value, weight, traits } =
+    tr []
+        [ td [] [ text name ]
+        , td [] [ text <| String.join " " dmg ]
+        , td [] [ text <| String.fromInt acc ]
+        , td [] [ text <| String.fromInt str ]
+        , td [] [ text <| String.fromInt mag ]
+        , td [] [ text ammo ]
+        , td [] [ text <| String.fromInt value ]
+        , td [] [ text <| String.fromInt weight ]
+        , td [] [ text <| String.join ", " traits ]
+        ]
+
+
+viewWeaponTable : List WeaponSpec -> Html Msg
+viewWeaponTable weaponList =
+    table [ class "table is-fullwidth is-striped" ]
+        [ thead []
+            [ th [] [ text "Name" ]
+            , th [] [ abbr [ title "Damage" ] [ text "Dmg" ] ]
+            , th [] [ abbr [ title "Accuracy" ] [ text "Acc" ] ]
+            , th [] [ abbr [ title "Strength" ] [ text "Str" ] ]
+            , th [] [ abbr [ title "Magazine" ] [ text "Mag" ] ]
+            , th [] [ text "Ammo" ]
+            , th [] [ text "Value" ]
+            , th [] [ text "Weight" ]
+            , th [] [ text "Traits" ]
+            ]
+        , tbody [] <|
+            List.map
+                viewWeapon
+                weaponList
         ]
 
 
 viewArmor : ArmorSpec -> Html Msg
-viewArmor armor =
-    li []
-        [ text
-            (armor.name
-                ++ " caps: "
-                ++ String.fromInt armor.dt
-                ++ " dt: "
-                ++ String.fromInt armor.dt
-                ++ " weight: "
-                ++ String.fromInt armor.weight
-            )
+viewArmor { name, dt, value, weight, traits } =
+    tr []
+        [ td [] [ text name ]
+        , td [] [ text <| String.fromInt dt ]
+        , td [] [ text <| String.fromInt value ]
+        , td [] [ text <| String.fromInt weight ]
+        , td [] [ text <| String.join ", " traits ]
+        ]
+
+
+viewArmorTable : List ArmorSpec -> Html Msg
+viewArmorTable armorList =
+    table [ class "table is-fullwidth is-striped" ]
+        [ thead []
+            [ th [] [ text "Name" ]
+            , th [] [ abbr [ title "Damage Threshold" ] [ text "DT" ] ]
+            , th [] [ text "Value" ]
+            , th [] [ text "Weight" ]
+            , th [] [ text "Traits" ]
+            ]
+        , tbody [] <|
+            List.map
+                viewArmor
+                armorList
         ]
 
 
@@ -303,13 +329,20 @@ view model =
     in
     div
         [ css
-            [ maxWidth (px 600)
+            [ maxWidth (px 1000)
             , margin auto
             ]
         ]
         [ h1 [] [ text "Quest" ]
         , input [ class "input", placeholder "Search...", onInput UpdateSearch ] []
-        , ul [] []
+        , div [ class "tabs" ]
+            [ ul []
+                [ li [ class "is-active" ] [ a [] [ text "Weapons" ] ]
+                , li [] [ a [] [ text "Armors" ] ]
+                ]
+            ]
+        , viewWeaponTable model.items.weapons
+        , viewArmorTable model.items.armors
         ]
 
 
