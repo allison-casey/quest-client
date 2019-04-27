@@ -117,6 +117,10 @@ presentIfJust m =
 
 query : ParseWhere.FilterDict -> SelectionSet (List Item) RootQuery
 query filterDict =
+    let
+        _ =
+            Debug.log "filters" filterDict
+    in
     Query.findItems
         (\optionals ->
             { optionals
@@ -130,6 +134,9 @@ query filterDict =
                         , mag = presentIfJust <| comparitorDecoder "mag" filterDict
                         , weight = presentIfJust <| comparitorDecoder "weight" filterDict
                         , dt = presentIfJust <| comparitorDecoder "dt" filterDict
+                        , dmg = presentIfJust <| arrayFieldDecoder "dmg" filterDict
+                        , traits = presentIfJust <| arrayFieldDecoder "traits" filterDict
+                        , ammo = presentIfJust <| stringFilterDecoer "ammo" filterDict
                         }
             }
         )

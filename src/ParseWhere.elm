@@ -2,12 +2,14 @@ module ParseWhere exposing
     ( Field
     , Filter(..)
     , FilterDict
+    , arrayFieldDecoder
     , comparitorDecoder
     , createIntFilter
     , limitDecoder
     , nameDecoder
     , nameParser
     , parse
+    , stringFilterDecoer
     , whereBlockParser
     , whereBlockParserHelp
     )
@@ -21,6 +23,7 @@ import Quest.InputObject exposing (IntFilterType)
 type Filter
     = Limit Int
     | Name String
+    | ArrayField (List String)
     | Comparison CO.ComparisonOperator Int
 
 
@@ -53,6 +56,28 @@ createIntFilter constructor field =
             |= Parser.int
             |. symbol ":"
             |. spaces
+        )
+
+
+createStringFilter : Field -> Parser ( Field, Filter )
+createStringFilter field =
+    map (\a -> ( field, Name a ))
+        (succeed identity
+            |. symbol ":"
+            |. keyword field
+            |. symbol "="
+            |= (Parser.getChompedString <| succeed () |. chompUntil ":")
+        )
+
+
+createArrayFilter : Field -> Parser ( Field, Filter )
+createArrayFilter field =
+    map (\a -> ( field, ArrayField (String.split "," a) ))
+        (succeed identity
+            |. symbol ":"
+            |. keyword field
+            |. symbol "="
+            |= (Parser.getChompedString <| succeed () |. chompUntil ":")
         )
 
 
@@ -111,18 +136,20 @@ whereBlockParserHelp :
     -> Parser (List ( Field, Filter ))
 whereBlockParserHelp filterList filter =
     let
-        limitparser =
-            createIntFilter Limit "limit"
-
         recurse =
             \newFilter -> whereBlockParserHelp (filter :: filterList) newFilter
+
+        limitparser =
+            createIntFilter Limit "limit" |> andThen recurse
 
         comparisonParser field =
             createComparisonFilter field |> andThen recurse
     in
     oneOf
-        [ backtrackable limitparser
-            |> andThen recurse
+        [ backtrackable <| limitparser
+        , backtrackable <| (createStringFilter "ammo" |> andThen recurse)
+        , backtrackable <| (createArrayFilter "dmg" |> andThen recurse)
+        , backtrackable <| (createArrayFilter "traits" |> andThen recurse)
         , backtrackable <| comparisonParser "value"
         , backtrackable <| comparisonParser "acc"
         , backtrackable <| comparisonParser "str"
@@ -177,6 +204,34 @@ comparitorDecoder field =
             case a of
                 Comparison comparitor input ->
                     Just <| IntFilterType comparitor input
+
+                _ ->
+                    Nothing
+    in
+    filterDecoder field callback
+
+
+stringFilterDecoer : Field -> FilterDict -> Maybe String
+stringFilterDecoer field =
+    let
+        callback a =
+            case a of
+                Name name ->
+                    Just name
+
+                _ ->
+                    Nothing
+    in
+    filterDecoder field callback
+
+
+arrayFieldDecoder : Field -> FilterDict -> Maybe (List String)
+arrayFieldDecoder field =
+    let
+        callback a =
+            case a of
+                ArrayField arr ->
+                    Just arr
 
                 _ ->
                     Nothing

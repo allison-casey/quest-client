@@ -133,8 +133,8 @@ type alias ItemWhereOptionalFields =
     { name : OptionalArgument String
     , limit : OptionalArgument Int
     , ammo : OptionalArgument String
-    , dmg : OptionalArgument (List (Maybe String))
-    , traits : OptionalArgument (List (Maybe String))
+    , dmg : OptionalArgument (List String)
+    , traits : OptionalArgument (List String)
     , value : OptionalArgument IntFilterType
     , acc : OptionalArgument IntFilterType
     , str : OptionalArgument IntFilterType
@@ -150,8 +150,8 @@ type alias ItemWhere =
     { name : OptionalArgument String
     , limit : OptionalArgument Int
     , ammo : OptionalArgument String
-    , dmg : OptionalArgument (List (Maybe String))
-    , traits : OptionalArgument (List (Maybe String))
+    , dmg : OptionalArgument (List String)
+    , traits : OptionalArgument (List String)
     , value : OptionalArgument IntFilterType
     , acc : OptionalArgument IntFilterType
     , str : OptionalArgument IntFilterType
@@ -166,7 +166,7 @@ type alias ItemWhere =
 encodeItemWhere : ItemWhere -> Value
 encodeItemWhere input =
     Encode.maybeObject
-        [ ( "name", Encode.string |> Encode.optional input.name ), ( "limit", Encode.int |> Encode.optional input.limit ), ( "ammo", Encode.string |> Encode.optional input.ammo ), ( "dmg", (Encode.string |> Encode.maybe |> Encode.list) |> Encode.optional input.dmg ), ( "traits", (Encode.string |> Encode.maybe |> Encode.list) |> Encode.optional input.traits ), ( "value", encodeIntFilterType |> Encode.optional input.value ), ( "acc", encodeIntFilterType |> Encode.optional input.acc ), ( "str", encodeIntFilterType |> Encode.optional input.str ), ( "mag", encodeIntFilterType |> Encode.optional input.mag ), ( "weight", encodeIntFilterType |> Encode.optional input.weight ), ( "dt", encodeIntFilterType |> Encode.optional input.dt ) ]
+        [ ( "name", Encode.string |> Encode.optional input.name ), ( "limit", Encode.int |> Encode.optional input.limit ), ( "ammo", Encode.string |> Encode.optional input.ammo ), ( "dmg", (Encode.string |> Encode.list) |> Encode.optional input.dmg ), ( "traits", (Encode.string |> Encode.list) |> Encode.optional input.traits ), ( "value", encodeIntFilterType |> Encode.optional input.value ), ( "acc", encodeIntFilterType |> Encode.optional input.acc ), ( "str", encodeIntFilterType |> Encode.optional input.str ), ( "mag", encodeIntFilterType |> Encode.optional input.mag ), ( "weight", encodeIntFilterType |> Encode.optional input.weight ), ( "dt", encodeIntFilterType |> Encode.optional input.dt ) ]
 
 
 buildWeaponAttributes : WeaponAttributesRequiredFields -> WeaponAttributes
