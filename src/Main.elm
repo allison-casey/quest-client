@@ -171,8 +171,8 @@ armorSelection =
 makeRequest : String -> String -> Cmd Msg
 makeRequest urlHost searchString =
     buildQuery searchString
-        -- |> Graphql.Http.queryRequest ("http://" ++ urlHost ++ ":4000/quest")
-        |> Graphql.Http.queryRequest "/quest"
+        |> Graphql.Http.queryRequest "http://localhost:4000/quest"
+        -- |> Graphql.Http.queryRequest "/quest"
         |> Graphql.Http.send (RemoteData.fromResult >> GotResponse)
 
 
